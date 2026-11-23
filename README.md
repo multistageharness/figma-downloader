@@ -133,6 +133,21 @@ out/<fileKey>/
 └── full.json                # the reconstructed single file
 ```
 
+## Secret store
+
+The CLI reads the Figma token from the environment (`FIGMA_TOKEN`, `FIGMA_API_TOKEN` or
+`FIGMA_ACCESS_TOKEN`) and, when none is set, from the macOS keychain through
+[`macos-keychain-env`](https://github.com/multistageharness/macos-keychain-env), vendored at `./vendor/macos-keychain-env`:
+
+```bash
+make vendor                      # fetch the vendored package (git-ignored)
+make secret KEY=FIGMA_TOKEN      # store the token through a hidden prompt
+make secrets                     # present / missing, reads no values
+node bin/figma-download.mjs --file-key <key>   # stderr: secrets=keychain (...)
+```
+
+Setup, validation and troubleshooting: [docs/keychain-env.md](docs/keychain-env.md).
+
 ## Develop
 
 ```bash

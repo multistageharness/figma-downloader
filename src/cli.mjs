@@ -14,8 +14,10 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import {
   classify,
+  describeSecrets,
   FigmaFileClient,
   FixtureFetchAdapter,
+  loadFigmaSecrets,
   NativeFetchAdapter,
   ProxyTlsFetchAdapter,
   parseFileKey,
@@ -36,6 +38,9 @@ import { MOCK_FILE } from "./mock.mjs";
 import { indexParts, loadParts, reconstruct } from "./reconstruct.mjs";
 import { byteLength, countNodes, stringify, tokenBucket } from "./util.mjs";
 
+// Re-exported for the integration scripts, which import this module directly.
+export { describeSecrets, loadFigmaSecrets };
+
 /** The Figma REST endpoint the composed client targets (for the startup log). */
 const FIGMA_API_BASE = "https://api.figma.com/v1";
 
@@ -46,7 +51,8 @@ USAGE
 
 INPUT (choose one)
   --url <figma-url>     Figma file URL (the key is parsed out of it).
-  --file-key <key>      Figma file key. Needs FIGMA_TOKEN in the environment.
+  --file-key <key>      Figma file key. Needs FIGMA_TOKEN in the environment or
+                        in the macOS keychain (make secret KEY=FIGMA_TOKEN).
   --mock                Use a built-in offline fixture (no network, no token).
   --version <id>        Download a specific historical version (the version id
                         from GET /v1/files/:key/versions); omit for the current file.
@@ -168,7 +174,7 @@ function intOpt(args, name, def) {
 }
 
 /** Inner run: throws typed errors. `run` wraps it and maps them to exit codes. */
-async function runInner(argv, { env }) {
+async function runInner(argv, { env, secrets }) {
   const args = parseArgs(argv);
   if (args.help || args.h) {
     console.log(HELP);
@@ -263,6 +269,18 @@ async function runInner(argv, { env }) {
       "error: could not determine the Figma file key. Pass --file-key explicitly.\n",
     );
     return 2;
+  }
+
+  // Fill the token from the macOS keychain when the environment has none
+  // (vendored macos-keychain-env). Never for --mock; never logs a value.
+  if (!args.mock && secrets) {
+    try {
+      log(describeSecrets(await loadFigmaSecrets({ env })));
+    } catch (err) {
+      process.stderr.write(
+        `[figma-download] WARNING: ${err?.message || err}\n`,
+      );
+    }
   }
 
   // Token resolution is the SDK's shared chain:
@@ -546,9 +564,18 @@ async function runInner(argv, { env }) {
 }
 
 /** Public entrypoint. Maps typed Figma errors to distinct exit codes. */
-export async function run(argv, { env = process.env } = {}) {
+/**
+ * Run the CLI. `env` is the environment to read; `secrets` says whether the
+ * macOS keychain may fill a missing FIGMA_TOKEN into it (docs/keychain-env.md).
+ * It defaults to true for the real process environment and false for an env a
+ * caller supplies, so tests see exactly the variables they pass.
+ */
+export async function run(
+  argv,
+  { env = process.env, secrets = env === process.env } = {},
+) {
   try {
-    return await runInner(argv, { env });
+    return await runInner(argv, { env, secrets });
   } catch (err) {
     const code = exitCodeFor(err);
     // Both the CLI's own typed errors and the SDK's (translated at this

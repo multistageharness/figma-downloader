@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Download a Figma file of any size (sm/md/large/xl/xxxxl) in chunks \u2014 skeleton-first, bounded-concurrency batched /nodes streamed to disk, byte/time-aware re-chunking, content-hash idempotent parts, typed errors, proxy/TLS config \u2014 and reconstruct a single full file JSON locally. Node ESM CLI over the workspace SDK (@internal/figma-api-fetch-file -> @internal/figma-api-fetch -> undici + zod). Output twin of the stdlib-only Python package in packages/py: byte-identical results enforced by packages/parity.",
+  "description": "Download a Figma file of any size (sm/md/large/xl/xxxxl) in chunks — skeleton-first, bounded-concurrency batched /nodes streamed to disk, byte/time-aware re-chunking, content-hash idempotent parts, typed errors, proxy/TLS config — and reconstruct a single full file JSON locally. Node ESM CLI over the workspace SDK (@internal/figma-api-fetch-file -> @internal/figma-api-fetch -> undici + zod). Output twin of the stdlib-only Python package in packages/py: byte-identical results enforced by packages/parity.",
   "engines": {
     "node": ">=20"
   },
@@ -12,7 +12,7 @@
   },
   "scripts": {
     "start": "node bin/figma-download.mjs",
-    "test": "node --test",
+    "test": "node --test tests/*.test.mjs",
     "typecheck": "node --check bin/figma-download.mjs && node --check src/cli.mjs && node --check src/chunk.mjs && node --check src/reconstruct.mjs && node --check src/util.mjs && node --check src/mock.mjs && node --check src/config.mjs && node --check src/errors.mjs",
     "lint": "biome lint .",
     "lint:fix": "biome lint --write .",
